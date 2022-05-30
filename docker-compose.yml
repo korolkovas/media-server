@@ -1,0 +1,84 @@
+version: '3'
+services:
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: portainer
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./portainer-data:/data
+    ports:
+      - 9000:9000
+  app:
+    image: 'jc21/nginx-proxy-manager:latest'
+    container_name: nginx-manager
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '81:81'
+      - '443:443'
+    volumes:
+      - ./config.json:/app/config/production.json
+      - ./data:/data
+      - ./letsencrypt:/etc/letsencrypt
+  db:
+    image: 'yobasystems/alpine-mariadb:latest'
+    container_name: mariadb
+    environment:
+      MYSQL_ROOT_PASSWORD: 'npm'
+      MYSQL_DATABASE: 'npm'
+      MYSQL_USER: 'npm'
+      MYSQL_PASSWORD: 'npm'
+    volumes:
+      - ./data/mysql:/var/lib/mysql
+  sonarr:
+      image: linuxserver/sonarr
+      container_name: sonarr
+      ports:
+      - 8989:8989
+      volumes:
+      - ${CONFIG_DIR:?}/sonarr:/config
+      - ${MEDIA_DIR:?}/series:/tv
+      - ${DOWNLOAD_DIR:?}:/downloads
+      env_file: ./.env
+      restart: unless-stopped
+  deluge:
+      image: linuxserver/deluge
+      container_name: deluge
+      volumes:
+      - ${CONFIG_DIR:?}/deluge:/config
+      - ${DOWNLOAD_DIR:?}:/downloads
+      env_file: ./.env
+      ports:
+        - 8112:8112
+        - 6881:6881
+        - 6881:6881/udp
+      restart: unless-stopped
+  plex:
+    image: plexinc/pms-docker
+    restart: unless-stopped
+    container_name: plexms
+    ports:
+      - 32400:32400/tcp
+      - 3005:3005/tcp
+      - 8324:8324/tcp
+      - 32469:32469/tcp
+      - 1900:1900/udp
+      - 32410:32410/udp
+      - 32412:32412/udp
+      - 32413:32413/udp
+      - 32414:32414/udp
+    env_file: ./.env
+    environment:
+      - HOSTNAME=”PlexServer”
+      # - PLEX_CLAIM=<get at plex.tv/claim>
+    volumes:
+      - ${CONFIG_DIR:?}/plex:/config
+      - ${DOWNLOAD_DIR:?}:/media
+      - ${DOWNLOAD_DIR:?}/transcode:/transcode
+      
+
+
